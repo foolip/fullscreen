@@ -2,7 +2,8 @@ SHELL=/bin/bash -o pipefail
 .PHONY: local remote deploy r2-upload
 
 WEB_ROOT = fullscreen.spec.whatwg.org
-R2_BUCKET = whatwg-sites
+# Can be overridden with the R2_BUCKET environment variable, e.g. to test in a fork.
+R2_BUCKET := $(or $(R2_BUCKET),whatwg-sites)
 
 remote: fullscreen.bs
 	@ (HTTP_STATUS=$$(curl https://www.w3.org/publications/spec-generator/ \
