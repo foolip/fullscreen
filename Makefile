@@ -2,8 +2,10 @@ SHELL=/bin/bash -o pipefail
 .PHONY: local remote deploy r2-upload
 
 WEB_ROOT = fullscreen.spec.whatwg.org
-# Can be overridden with the R2_BUCKET environment variable, e.g. to test in a fork.
-R2_BUCKET := $(or $(R2_BUCKET),whatwg-sites)
+# The R2 bucket to upload to: the R2_BUCKET environment variable if set, else
+# whatwg-sites for whatwg/* repositories. Elsewhere (forks) R2_BUCKET must be
+# set, so that a fork with R2 credentials never uploads to the real bucket.
+R2_BUCKET := $(or $(R2_BUCKET),$(if $(filter whatwg/%,$(GITHUB_REPOSITORY)),whatwg-sites))
 
 remote: fullscreen.bs
 	@ (HTTP_STATUS=$$(curl https://www.w3.org/publications/spec-generator/ \
@@ -38,6 +40,10 @@ r2-upload:
 	@if [[ -z "$${AWS_ACCESS_KEY_ID:-}" || "$${GITHUB_EVENT_NAME:-}" != "push" || "$${GITHUB_REF:-}" != "refs/heads/main" ]]; then \
 		echo "Skipping R2 upload"; \
 		exit 0; \
+	fi; \
+	if [[ -z "$(R2_BUCKET)" ]]; then \
+		echo "error: R2 credentials are set but R2_BUCKET isn't (required outside whatwg/*)" >&2; \
+		exit 1; \
 	fi; \
 	set -o errexit; \
 	echo "Uploading $(WEB_ROOT) to R2"; \
